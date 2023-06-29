@@ -147,7 +147,6 @@ module Stripe
     #   StripeObject. Defaults to true.
     def update_attributes(values, opts = {}, dirty: true)
       values.each do |k, v|
-        add_accessors([k], values) unless metaclass.method_defined?(k.to_sym)
         @values[k] = Util.convert_to_stripe_object(v, opts)
         dirty_value!(@values[k]) if dirty
         @unsaved_values.add(k)
