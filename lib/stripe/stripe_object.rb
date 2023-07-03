@@ -509,29 +509,6 @@ module Stripe
       end
     end
 
-    # Produces a deep copy of the given object including support for arrays,
-    # hashes, and StripeObjects.
-    private_class_method def self.deep_copy(obj)
-      case obj
-      when Array
-        obj.map { |e| deep_copy(e) }
-      when Hash
-        obj.each_with_object({}) do |(k, v), copy|
-          copy[k] = deep_copy(v)
-          copy
-        end
-      when StripeObject
-        obj.class.construct_from(
-          deep_copy(obj.instance_variable_get(:@values)),
-          obj.instance_variable_get(:@opts).select do |k, _v|
-            Util::OPTS_COPYABLE.include?(k)
-          end
-        )
-      else
-        obj
-      end
-    end
-
     private def dirty_value!(value)
       case value
       when Array
