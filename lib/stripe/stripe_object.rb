@@ -369,6 +369,8 @@ module Stripe
         return mth.call(args[0])
       elsif @values.key?(name)
         return @values[name]
+      elsif name.to_s.end_with?("?") && @values.key?(name.to_s[0...-1])
+        return @values[name.to_s[0...-1]]
       end
 
       begin
@@ -390,7 +392,8 @@ module Stripe
     # rubocop:enable Style/MissingRespondToMissing
 
     protected def respond_to_missing?(symbol, include_private = false)
-      @values && @values.key?(symbol) || super
+      return true if @values&.key?(symbol) || (@values&.key?(symbol.to_s[0...-1].to_sym) && symbol.to_s.end_with?("?"))
+      super
     end
 
     # Re-initializes the object based on a hash of values (usually one that's
