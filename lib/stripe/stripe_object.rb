@@ -369,6 +369,8 @@ module Stripe
         return mth.call(args[0])
       elsif @values.key?(name)
         return @values[name]
+      elsif name.to_s.end_with?("?") && @values.key?(name.to_s[0...-1]&.to_sym)
+        return @values[name.to_s[0...-1]&.to_sym]
       elsif name.to_s.end_with?("?") && @values.key?(name.to_s[0...-1])
         return @values[name.to_s[0...-1]]
       end
