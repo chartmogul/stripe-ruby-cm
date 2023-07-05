@@ -147,7 +147,6 @@ module Stripe
     #   StripeObject. Defaults to true.
     def update_attributes(values, opts = {}, dirty: true)
       values.each do |k, v|
-        add_accessors([k], values) unless metaclass.method_defined?(k.to_sym)
         @values[k] = Util.convert_to_stripe_object(v, opts)
         dirty_value!(@values[k]) if dirty
         @unsaved_values.add(k)
@@ -393,6 +392,10 @@ module Stripe
         return mth.call(args[0])
       elsif @values.key?(name)
         return @values[name]
+      elsif name.to_s.end_with?("?") && @values.key?(name.to_s[0...-1]&.to_sym)
+        return @values[name.to_s[0...-1]&.to_sym]
+      elsif name.to_s.end_with?("?") && @values.key?(name.to_s[0...-1])
+        return @values[name.to_s[0...-1]]
       end
 
       begin
@@ -414,7 +417,8 @@ module Stripe
     # rubocop:enable Style/MissingRespondToMissing
 
     protected def respond_to_missing?(symbol, include_private = false)
-      @values && @values.key?(symbol) || super
+      return true if @values&.key?(symbol) || (@values&.key?(symbol.to_s[0...-1].to_sym) && symbol.to_s.end_with?("?"))
+      super
     end
 
     # Re-initializes the object based on a hash of values (usually one that's
@@ -431,9 +435,7 @@ module Stripe
     #   remove accessors.
     protected def initialize_from(values, opts)
       @opts = Util.normalize_opts(opts)
-
-      # the `#send` is here so that we can keep this method private
-      @original_values = self.class.send(:deep_copy, values)
+      @original_values = values
 
       removed = Set.new(@values.keys - values.keys)
       added = Set.new(values.keys - @values.keys)
@@ -443,7 +445,6 @@ module Stripe
       # values which don't persist as transient
 
       remove_accessors(removed)
-      add_accessors(added, values)
 
       removed.each do |k|
         @values.delete(k)
@@ -533,29 +534,6 @@ module Stripe
 
       else
         value
-      end
-    end
-
-    # Produces a deep copy of the given object including support for arrays,
-    # hashes, and StripeObjects.
-    private_class_method def self.deep_copy(obj)
-      case obj
-      when Array
-        obj.map { |e| deep_copy(e) }
-      when Hash
-        obj.each_with_object({}) do |(k, v), copy|
-          copy[k] = deep_copy(v)
-          copy
-        end
-      when StripeObject
-        obj.class.construct_from(
-          deep_copy(obj.instance_variable_get(:@values)),
-          obj.instance_variable_get(:@opts).select do |k, _v|
-            Util::OPTS_COPYABLE.include?(k)
-          end
-        )
-      else
-        obj
       end
     end
 
