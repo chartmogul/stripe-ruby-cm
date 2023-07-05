@@ -102,13 +102,23 @@ module Stripe
     def self.symbolize_names(object)
       case object
       when Hash
-       object.deep_symbolize_keys!
+        new_hash = {}
+        object.each do |key, value|
+          key = (begin
+                   key.to_sym
+                 rescue StandardError
+                   key
+                 end) || key
+          new_hash[key] = symbolize_names(value)
+        end
+        new_hash
       when Array
         object.map { |value| symbolize_names(value) }
       else
         object
       end
     end
+
 
     # Encodes a hash of parameters in a way that's suitable for use as query
     # parameters in a URI or as form parameters in a request body. This mainly
